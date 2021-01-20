@@ -1,0 +1,4 @@
+github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
+github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
+github.com/marioolofo/go-validateemail v0.0.0-20210119205650-717ce73995f0 h1:cR+tXXjjZAuXuS+5JJW8SW7otiwBH5tzGaD/X2s6aWY=
+github.com/marioolofo/go-validateemail v0.0.0-20210119205650-717ce73995f0/go.mod h1:dQOu+jMhzVOS2tzKdo8EpfIkFMmv5mDYRbRyXgnnagM=
