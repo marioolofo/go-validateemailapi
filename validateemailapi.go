@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,37 +10,40 @@ import (
 	validateemail "github.com/marioolofo/go-validateemail"
 )
 
+var (
+	EnvHelloHost = "VALIDATE_EMAIL_HELLO_HOST" // endereço com porta, ex: mailserver.com
+	EnvEmailFrom = "VALIDATE_EMAIL_FROM" // email local, ex: exemplo@mailserver.com
+	EnvApiListenIP = "VALIDATE_EMAIL_API_LISTEN_IP" // IP da API com porta, ex: localhost:80
+)
+
+// EmailValid define a resposta para a consulta de emails validos
 type EmailValid struct {
 	Error string `json:"error"`
 	IsValid bool `json:"valid"`
 }
 
+// getEnvVar retorna o conteúdo da variável de ambiente se existir, senão retorna o defaultValue
+func getEnvVar(envVar, defaultValue string) string {
+	v, ok := os.LookupEnv(envVar)
+	if (!ok) {
+		return defaultValue
+	}
+	return v
+}
+
+// verifyEmail implementa o tratamento da requisição para consulta por emails
 func verifyEmail(w http.ResponseWriter, r *http.Request) {
-	localhost, ok := os.LookupEnv("VALIDATE_EMAIL_LOCALHOST")
-	if (!ok) {
-		json.NewEncoder(w).Encode(EmailValid{
-			Error: "Env var VALIDATE_EMAIL_LOCALHOST not configured",
-			IsValid: false,
-		})
-		return
-	}
-	fromEmail, ok := os.LookupEnv("VALIDATE_EMAIL_FROM")
-	if (!ok) {
-		json.NewEncoder(w).Encode(EmailValid{
-			Error: "Env var VALIDATE_EMAIL_FROM not configured",
-			IsValid: false,
-		})
-		return
-	}
+	localhost := getEnvVar(EnvHelloHost, "localhost")
+	fromEmail := getEnvVar(EnvEmailFrom, "example@example.com")
 
 	vars := mux.Vars(r)
 	email := vars["email"]
 
 	ctx := validateemail.NewValidateEmail(localhost, fromEmail)
-	result := ctx.Validate(email)
-	if (result != nil) {
+	err := ctx.Validate(email)
+	if (err != nil) {
 		json.NewEncoder(w).Encode(EmailValid{
-			Error: result.Error(),
+			Error: err.Error(),
 			IsValid: false,
 		})
 	} else {
@@ -50,24 +54,27 @@ func verifyEmail(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// setupServer configura as rotas e inicia o server
 func setupServer() {
+	listenIP := getEnvVar(EnvApiListenIP, ":80")
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/verify/{email}", verifyEmail).Methods("GET")
-	log.Fatal(http.ListenAndServe(":80", myRouter))
+	log.Fatal(http.ListenAndServe(listenIP, myRouter))
 }
 
-func checkEnv() {
-	_, ok := os.LookupEnv("VALIDATE_EMAIL_LOCALHOST")
-	if (!ok) {
-		log.Fatal("VALIDATE_EMAIL_LOCALHOST not defined")
-	}
-	_, ok = os.LookupEnv("VALIDATE_EMAIL_FROM")
-	if (!ok) {
-		log.Fatal("VALIDATE_EMAIL_FROM not defined")
-	}
-}
-
+// main
 func main() {
-	checkEnv()
+	envVars := map[string]string{EnvHelloHost: "example.com", EnvEmailFrom: "test@example.com", EnvApiListenIP: ":80"}
+	for key, _ := range envVars {
+		_, ok := os.LookupEnv(key)
+		if (!ok) {
+			log.Printf(fmt.Sprintf("[WARN] %s not defined, will use default value\n", key))
+		}
+	}
+
+	for key, defaultValue := range envVars {
+		log.Printf(fmt.Sprintf("Using %s = \"%s\"", key, getEnvVar(key, defaultValue)))
+	}
+
 	setupServer()
 }
